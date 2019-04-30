@@ -1,0 +1,97 @@
+#include "mbed.h"
+#include "Si7021.h"
+
+
+#define Si7021_ADDR (0x80) // Si7021 address is 0x40
+// but 0x5A<<1 (left shifted) turns to 0x80,
+// therefore in I2C commands the "address" is 0x80
+#define SCAN_ADDRESSES 0 // change 0 to 1 in case you want to scan the I2C addresses
+// Definition of instance i2c of I2C class
+//I2C i2c(PC_9, PA_8); // F401RE I2C3 SDA, SCL
+I2C i2c(PB_9, PB_8); // F401RE, L152RE I2C1 SDA, SCL
+DigitalOut myled(LED1); //displays I2C wait
+// Instance definition using Si7021 class
+Si7021 RH_T_sensor(&i2c, Si7021_ADDR);
+// Global variables
+float RH; // Relative humidity
+float temp; //temperature in degrees C
+
+//-------------------------------------------------------
+
+//AnalogIn LM35(PA_0); //Setting pin PA0 (A0) as Anlog Input
+
+ 
+int main() {
+
+    /**********************************************SENSORE DI TEMPERATURA LM35********************************************************************/
+/*
+    float tempC,tempF,a[10],avg;
+    int i;
+    
+    while(1) {
+    
+    avg=0;
+    for(i=0;i<10;i++) {
+        a[i]=LM35.read();
+        wait(.02);
+    }
+    for(i=0;i<10;i++) {
+        avg=avg+(a[i]/10);
+    }
+    
+    
+    tempC=(avg*3.685503686*100);
+    //tempF=(9.0*tempC)/5.0 + 32.0; 
+    pc.printf("temperature = %.0f ^C\r\n", tempC);
+    
+    wait(1); 
+    }
+*/
+    /*********************************************************************************************************************************************/
+
+    /**********************************************SENSORE DI UMIDITA' Si7021********************************************************************/
+
+   #if (SCAN_ADDRESSES)
+    // scan i2c addresses
+    for (int address=0; address<256; address+=2) {
+        if (!i2c.write(address, NULL, 0))
+            printf("I2C address 0x%02X: FOUND!\n", address);
+        else
+            printf("I2C address 0x%02X\n", address);
+    }
+    #endif
+
+    while (1) {
+        
+        myled=1; // if led1 on ‐ waiting on I2C
+        //gets Relative Humidity from sensor via I2C bus
+        if (RH_T_sensor.getRH(&RH)) { // actual parameter is an address
+            // or pointer therefore the RH value is available after function call
+            // print RH on PC
+                printf("Relative Humidity is:%6.2f %%\r\n\n",RH);
+        }
+        //gets ambient temperature from sensor via I2C bus
+        if (RH_T_sensor.getPrevTemp(&temp)) { // actual parameter is an address
+            // or pointer therefore the temp value is available after function call
+            // print temperature on PC
+                printf("Ambient Temp. associated to RH reading is:%6.2f degC\r\n\n",temp);
+        }
+        //gets new ambient temperature from sensor via I2C bus
+        if (RH_T_sensor.getTemp(&temp)) { // actual parameter is an address
+            // or pointer therefore the temp value is available after function call
+            // print temperature on PC
+                printf("Freshly read Ambient Temp. is:%6.2f degC\r\n\n",temp);
+                
+        }
+        
+   // pc.printf("Hello Word\n");
+    printf("---------------------------------------------------------\n\r\n");
+    myled=0;
+    //wait for device to produce next temperature reading
+    
+    wait(5.0);
+
+    /*********************************************************************************************************************************************/
+    }
+    
+}
